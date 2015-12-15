@@ -1,0 +1,164 @@
+#!/usr/bin/env perl
+# ==============================================================================
+# This to Analyze AVC log of SEAndroid
+# ==============================================================================
+package main;
+
+use strict;
+use warnings;
+use 5.010;
+
+our $VERSION = '0.01';
+
+# hash is a hash of list, first item is a scalar,
+# second is a list which contents of every feild of avclines
+my %hash = ();
+my $randlen = 80;
+
+use constant {
+  DENIED_FEILD_INDEX    => 0,
+  SCONTEXT_FEILD_INDEX  => 1,
+  TCONTEXT_FEILD_INDEX  => 2,
+  TCLASS_FEILD_INDEX    => 3,
+  EXTRA_FEILD_INDEX     => 4,
+};
+
+use constant {
+  C_NORMAL  => "\e[0m",
+  C_BRED    => "\e[1;31m",
+  C_BGREEN  => "\e[1;32m",
+  C_BGBLUE  => "\e[44m",
+};
+
+
+# TODO: Here use PCRE to get every feild, this is slow but always bring
+# right result. Split is much faster than this, but I do not kown whether
+# order of fields will change or not in some case.
+# XXX: Should replace spaces to a separate space. {
+use constant {
+  AVC_DENIED_MARK         => qr {avc:\h*denied}o,
+  AVC_DENIED_PATTERN      => qr {(?<=denied\h\{\h)(?:\w|\h)+(?=\h\}\s)}o,
+  AVC_SCONTEXT_PATTERN    => qr {(?<=scontext=)\w+:\w+:\w+:\w+(?::.+?)?(?=\s)}o,
+  AVC_TCONTEXT_PATTERN    => qr {(?<=tcontext=)\w+:\w+:\w+:\w+(?::.+?)?(?=\s)}o,
+  AVC_TCLASS_PATTERN      => qr {(?<=tclass=)\w+(?=\s)}o,
+  AVC_PID_PATTERN         => qr {(?<=pid=)\d+(?=\s)}o,
+  AVC_COMM_PATTERN        => qr {(?<=comm=")\w+(?="\s)}o,
+  AVC_PERMISSIVE_PATTERN  => qr {(?<=permissive=)\d+(\s)}o,
+};
+# }
+
+# ==============================================================================
+# Split AVC log line to feilds
+# ==============================================================================
+sub split_avcline ($) {
+  my $avcline = shift;
+  my ($denied, $scontext, $tcontext, $tclass) = ();
+
+  $avcline =~ AVC_DENIED_PATTERN and $denied = $&;
+  $avcline =~ AVC_SCONTEXT_PATTERN and $scontext = $&;
+  $avcline =~ AVC_TCONTEXT_PATTERN and $tcontext = $&;
+  $avcline =~ AVC_TCLASS_PATTERN and $tclass = $&;
+
+  # Here use hash to exclude duplicate avclines
+  # WARN: If more feild to add as value one day, key should *NOT* change {
+  my $value = \@{ $hash{+join '', $denied, $scontext, $tcontext, $tclass} };
+  $value->[+DENIED_FEILD_INDEX] = $denied;
+  $value->[+SCONTEXT_FEILD_INDEX] = $scontext;
+  $value->[+TCONTEXT_FEILD_INDEX] = $tcontext;
+  $value->[+TCLASS_FEILD_INDEX] = $tclass;
+  $value->[+EXTRA_FEILD_INDEX] = $avcline;
+  # }
+
+  return 1;
+}
+
+# ==============================================================================
+# Hash AVC log line and exclude duplicate lines
+# ==============================================================================
+sub hash_avclines {
+  $_ =~ s{\s+}{ }og and split_avcline $_
+    for grep { $_ =~ AVC_DENIED_MARK } <>;
+
+  return 1;
+}
+
+# ==============================================================================
+# Print SEAndroid policy for an AVC denied log line
+# ==============================================================================
+sub parse_avcline (@) {
+  my $denied    = $_[DENIED_FEILD_INDEX];
+  my $scontext  = $_[SCONTEXT_FEILD_INDEX];
+  my $tcontext  = $_[TCONTEXT_FEILD_INDEX];
+  my $tclass    = $_[TCLASS_FEILD_INDEX];
+  my $extraline = $_[EXTRA_FEILD_INDEX];
+  my ($stype, $ttype) = ((split ':', $scontext)[2], (split ':', $tcontext)[2]);
+
+  say C_BGBLUE, '=' x (defined $randlen ? $randlen : 80), C_NORMAL;
+  say C_BRED, "AVC LOG:", C_NORMAL, "\n", $extraline;
+  say C_BGREEN, "GUESS POLICY:", C_NORMAL;
+  say "allow $stype $ttype:$tclass { $denied };";
+
+  return 1;
+}
+
+# ==============================================================================
+# Parse all AVC denied logs
+# ==============================================================================
+sub parse_avclines {
+  parse_avcline @{ $hash{$_} }
+    for sort keys %hash;
+
+  return 1;
+}
+
+# ==============================================================================
+# BEGIN
+# ==============================================================================
+MAIN: {
+  srand and $randlen = 10 + int rand 70;
+
+  hash_avclines and parse_avclines;
+}
+
+1;
+
+=encoding utf8
+
+=head1 NAME
+
+avcparser - Analyze AVC log of SEAndroid
+
+=head1 SYNOPSIS
+
+avcparser [logfile...]
+
+=head1 WARNNING
+
+Current we read whole log file into memery, this is fast but may failed
+if log file is very huge (size in GB).
+
+=head1 COPYRIGHT
+
+Copyright (c) 2015 秦凡东 (Qin Fandong)
+
+=head1 LICENSE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the “Software”), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+=cut
+
