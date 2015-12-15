@@ -134,8 +134,8 @@ avcparser [logfile...]
 
 =head1 WARNNING
 
-Current we read whole log file into memery, this is fast but may failed
-if log file is very huge (size in GB).
+Current we read whole log file into memory, this is fast but may failed
+if log file is very huge (more than 1/3 of physical memory).
 
 =head1 COPYRIGHT
 

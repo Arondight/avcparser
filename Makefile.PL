@@ -20,7 +20,7 @@ my %parms = (
   PREREQ_PM     => {
   },
 
-  MAN1PODS      => {},
+  #MAN1PODS      => {},
   MAN3PODS      => {},
 
   dist          => {
