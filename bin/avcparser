@@ -13,6 +13,9 @@ our $VERSION = '0.01';
 # hash is a hash of list, first item is a scalar,
 # second is a list which contents of every feild of avclines
 my %hash = ();
+# colors for linux tty
+my %color = ();
+# randlen will be reset later
 my $randlen = 80;
 
 use constant {
@@ -24,10 +27,10 @@ use constant {
 };
 
 use constant {
-  C_NORMAL  => "\e[0m",
-  C_BRED    => "\e[1;31m",
-  C_BGREEN  => "\e[1;32m",
-  C_BGBLUE  => "\e[44m",
+  C_NORMAL  => 0,
+  C_BRED    => 1,
+  C_BGREEN  => 2,
+  C_BGBLUE  => 3,
 };
 
 
@@ -46,6 +49,28 @@ use constant {
   AVC_PERMISSIVE_PATTERN  => qr {(?<=permissive=)\d+(\s)}o,
 };
 # }
+
+# ==============================================================================
+# Set output color
+# ==============================================================================
+sub set_color {
+  if ($^O =~ m{linux}io) {
+    eval {
+      $color{+C_NORMAL} = "\e[0m";
+      $color{+C_BRED}   = "\e[1;31m",
+      $color{+C_BGREEN} = "\e[1;32m",
+      $color{+C_BGBLUE} = "\e[44m",
+    }
+  }
+  else {
+    eval {
+      ($color{+C_BGREEN}, $color{+C_BRED})   = ('*** ', '*** ');
+      ($color{+C_NORMAL}, $color{+C_BGBLUE}) = ('', '');
+    }
+  }
+
+  return 1;
+}
 
 # ==============================================================================
 # Split AVC log line to feilds
@@ -76,8 +101,8 @@ sub split_avcline ($) {
 # Hash AVC log line and exclude duplicate lines
 # ==============================================================================
 sub hash_avclines {
-  $_ =~ s{\s+}{ }og and split_avcline $_
-    for grep { $_ =~ AVC_DENIED_MARK } <>;
+  s{\s+}{ }og and split_avcline $_
+    for grep { AVC_DENIED_MARK } <>;
 
   return 1;
 }
@@ -86,16 +111,17 @@ sub hash_avclines {
 # Print SEAndroid policy for an AVC denied log line
 # ==============================================================================
 sub parse_avcline (@) {
-  my $denied    = $_[DENIED_FEILD_INDEX];
-  my $scontext  = $_[SCONTEXT_FEILD_INDEX];
-  my $tcontext  = $_[TCONTEXT_FEILD_INDEX];
-  my $tclass    = $_[TCLASS_FEILD_INDEX];
-  my $extraline = $_[EXTRA_FEILD_INDEX];
+  my $denied    = $_[+DENIED_FEILD_INDEX];
+  my $scontext  = $_[+SCONTEXT_FEILD_INDEX];
+  my $tcontext  = $_[+TCONTEXT_FEILD_INDEX];
+  my $tclass    = $_[+TCLASS_FEILD_INDEX];
+  my $extraline = $_[+EXTRA_FEILD_INDEX];
   my ($stype, $ttype) = ((split ':', $scontext)[2], (split ':', $tcontext)[2]);
 
-  say C_BGBLUE, '=' x (defined $randlen ? $randlen : 80), C_NORMAL;
-  say C_BRED, "AVC LOG:", C_NORMAL, "\n", $extraline;
-  say C_BGREEN, "GUESS POLICY:", C_NORMAL;
+  say $color{+C_BGBLUE}, '=' x (defined $randlen ? $randlen : 80),
+      $color{+C_NORMAL};
+  say $color{+C_BRED}, "AVC LOG:", $color{+C_NORMAL}, "\n", $extraline;
+  say $color{+C_BGREEN}, "GUESS POLICY:", $color{+C_NORMAL};
   say "allow $stype $ttype:$tclass { $denied };";
 
   return 1;
@@ -117,7 +143,7 @@ sub parse_avclines {
 MAIN: {
   srand and $randlen = 10 + int rand 70;
 
-  hash_avclines and parse_avclines;
+  set_color and hash_avclines and parse_avclines;
 }
 
 1;
