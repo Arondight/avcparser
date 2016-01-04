@@ -55,18 +55,14 @@ use constant {
 # ==============================================================================
 sub set_color {
   if ($^O =~ m{linux}io) {
-    eval {
-      $color{+C_NORMAL} = "\e[0m";
-      $color{+C_BRED}   = "\e[1;31m",
-      $color{+C_BGREEN} = "\e[1;32m",
-      $color{+C_BGBLUE} = "\e[44m",
-    }
+    $color{+C_NORMAL} = "\e[0m";
+    $color{+C_BRED}   = "\e[1;31m",
+    $color{+C_BGREEN} = "\e[1;32m",
+    $color{+C_BGBLUE} = "\e[44m",
   }
   else {
-    eval {
-      ($color{+C_BGREEN}, $color{+C_BRED})   = ('*** ', '*** ');
-      ($color{+C_NORMAL}, $color{+C_BGBLUE}) = ('', '');
-    }
+    ($color{+C_BGREEN}, $color{+C_BRED})   = ('*** ', '*** ');
+    ($color{+C_NORMAL}, $color{+C_BGBLUE}) = ('', '');
   }
 
   return 1;
