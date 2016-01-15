@@ -26,7 +26,7 @@ sudo make install
 
 # COPYRIGHT
 
-Copyright (c) 2015 秦凡东 (Qin Fandong)
+Copyright (c) 2015-2016 秦凡东 (Qin Fandong)
 
 # LICENSE
 
