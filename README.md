@@ -1,34 +1,36 @@
-# NAME
+# avcparser
 
-avcparser - Analyze AVC log of SEAndroid
+## ABOUT
 
-# SYNOPSIS
+This to analyze AVC log of SEAndroid
 
-```shell
+## USAGE
+
+```bash
 avcparser [logfile...]
 ```
 
 Read manual for more info:
 
-```shell
+```bash
 man 1 avcparser
 ```
 
-# BUILD
+## INSTALLATION
 
 ```shell
-git clone https://github.com/Arondight/avcparser.git avcparser
+git clone https://github.com/Arondight/avcparser.git
 cd avcparser
 perl Makefile.PL
 make
 sudo make install
 ```
 
-# COPYRIGHT
+## COPYRIGHT
 
 Copyright (c) 2015-2016 秦凡东 (Qin Fandong)
 
-# LICENSE
+## LICENSE
 
 Read [LICENSE](LICENSE)
 
